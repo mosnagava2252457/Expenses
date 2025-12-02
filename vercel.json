@@ -1,0 +1,17 @@
+{
+  "version": 2,
+  "build": {
+    "env": {
+      "NODE_ENV": "production"
+    }
+  },
+  "routes": [
+    {
+      "src": "/expenses(.*)",
+      "dest": "/api/expenses$1"
+    }
+  ],
+  "env": {
+    "SECRET_KEY": "@vercel-serverless-expenses-api"
+  }
+}
