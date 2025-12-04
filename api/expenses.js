@@ -1,6 +1,6 @@
-// A simple in-memory array to store expenses.
-// NOTE: For production, you would replace this with a database (e.g., MongoDB, PostgreSQL).
-const expenses = [
+// In-memory storage for expenses
+// Note: This resets on each deployment. Use a database for production.
+let expenses = [
   {
     id: 1,
     amount: 50.75,
@@ -19,71 +19,74 @@ const expenses = [
 
 let nextId = 3;
 
-// Helper function to send a JSON response
-const sendResponse = (res, statusCode, data) => {
-  res.setHeader('Content-Type', 'application/json');
-  res.status(statusCode).json(data);
-};
+export default function handler(req, res) {
+  // Enable CORS
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
 
-// Main serverless function handler
-module.exports = async (req, res) => {
-  const { method } = req;
+  // Handle preflight requests
+  if (req.method === 'OPTIONS') {
+    return res.status(200).end();
+  }
 
-  // --- GET Request Handler ---
-  if (method === 'GET') {
-    // Respond with the list of all expenses (simulating "get all")
-    sendResponse(res, 200, {
+  // GET: Return all expenses
+  if (req.method === 'GET') {
+    return res.status(200).json({
       success: true,
       data: expenses,
     });
-    return;
   }
 
-  // --- POST Request Handler ---
-  if (method === 'POST') {
-    // Vercel's Node.js runtime automatically parses the body for 'application/json'
+  // POST: Add a new expense
+  if (req.method === 'POST') {
     const { amount, description, category, date } = req.body;
 
-    // 1. Error Handling: Check for required fields
+    // Validate required fields
     if (!amount || !description || !category || !date) {
-      return sendResponse(res, 400, {
+      return res.status(400).json({
         success: false,
         message: 'Missing required fields: amount, description, category, and date are all required.',
       });
     }
-    
-    // 2. Error Handling: Basic type validation
-    if (typeof amount !== 'number' || isNaN(new Date(date).getTime())) {
-        return sendResponse(res, 400, {
-            success: false,
-            message: 'Invalid data types: amount must be a number and date must be a valid date string.',
-        });
+
+    // Validate data types
+    const numAmount = parseFloat(amount);
+    if (isNaN(numAmount) || numAmount <= 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid amount: must be a positive number.',
+      });
     }
 
-    // 3. Create and add new expense
+    if (isNaN(new Date(date).getTime())) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid date: must be a valid date string.',
+      });
+    }
+
+    // Create new expense
     const newExpense = {
       id: nextId++,
-      amount: parseFloat(amount), // Ensure amount is a number
-      description: String(description),
-      category: String(category),
+      amount: numAmount,
+      description: String(description).trim(),
+      category: String(category).trim(),
       date: String(date),
     };
 
     expenses.push(newExpense);
 
-    // Respond with the newly created expense
-    sendResponse(res, 201, {
+    return res.status(201).json({
       success: true,
       message: 'Expense added successfully.',
       data: newExpense,
     });
-    return;
   }
 
-  // --- Method Not Allowed Handler ---
-  // For any method other than GET or POST
-  sendResponse(res, 405, {
+  // Method not allowed
+  return res.status(405).json({
     success: false,
-    message: `Method ${method} Not Allowed`,
+    message: `Method ${req.method} not allowed.`,
   });
-};
+}
