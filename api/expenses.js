@@ -1,7 +1,3 @@
-
-
-
-
 // In-memory storage for expenses
 // Note: This resets on each deployment. Use a database for production.
 const expenses = [
@@ -31,17 +27,15 @@ module.exports = (req, res) => {
 
   // Handle preflight requests
   if (req.method === 'OPTIONS') {
-    res.status(200).end();
-    return;
+    return res.status(200).end();
   }
 
   // GET: Return all expenses
   if (req.method === 'GET') {
-    res.status(200).json({
+    return res.status(200).json({
       success: true,
       data: expenses,
     });
-    return;
   }
 
   // POST: Add a new expense
@@ -50,29 +44,26 @@ module.exports = (req, res) => {
 
     // Validate required fields
     if (!amount || !description || !category || !date) {
-      res.status(400).json({
+      return res.status(400).json({
         success: false,
         message: 'Missing required fields: amount, description, category, and date are all required.',
       });
-      return;
     }
 
     // Validate data types
     const numAmount = parseFloat(amount);
     if (isNaN(numAmount) || numAmount <= 0) {
-      res.status(400).json({
+      return res.status(400).json({
         success: false,
         message: 'Invalid amount: must be a positive number.',
       });
-      return;
     }
 
     if (isNaN(new Date(date).getTime())) {
-      res.status(400).json({
+      return res.status(400).json({
         success: false,
         message: 'Invalid date: must be a valid date string.',
       });
-      return;
     }
 
     // Create new expense
@@ -86,16 +77,15 @@ module.exports = (req, res) => {
 
     expenses.push(newExpense);
 
-    res.status(201).json({
+    return res.status(201).json({
       success: true,
       message: 'Expense added successfully.',
       data: newExpense,
     });
-    return;
   }
 
   // Method not allowed
-  res.status(405).json({
+  return res.status(405).json({
     success: false,
     message: `Method ${req.method} not allowed.`,
   });
