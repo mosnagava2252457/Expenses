@@ -1,6 +1,10 @@
+
+
+
+
 // In-memory storage for expenses
 // Note: This resets on each deployment. Use a database for production.
-let expenses = [
+const expenses = [
   {
     id: 1,
     amount: 50.75,
@@ -19,7 +23,7 @@ let expenses = [
 
 let nextId = 3;
 
-export default function handler(req, res) {
+module.exports = (req, res) => {
   // Enable CORS
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
@@ -27,43 +31,48 @@ export default function handler(req, res) {
 
   // Handle preflight requests
   if (req.method === 'OPTIONS') {
-    return res.status(200).end();
+    res.status(200).end();
+    return;
   }
 
   // GET: Return all expenses
   if (req.method === 'GET') {
-    return res.status(200).json({
+    res.status(200).json({
       success: true,
       data: expenses,
     });
+    return;
   }
 
   // POST: Add a new expense
   if (req.method === 'POST') {
-    const { amount, description, category, date } = req.body;
+    const { amount, description, category, date } = req.body || {};
 
     // Validate required fields
     if (!amount || !description || !category || !date) {
-      return res.status(400).json({
+      res.status(400).json({
         success: false,
         message: 'Missing required fields: amount, description, category, and date are all required.',
       });
+      return;
     }
 
     // Validate data types
     const numAmount = parseFloat(amount);
     if (isNaN(numAmount) || numAmount <= 0) {
-      return res.status(400).json({
+      res.status(400).json({
         success: false,
         message: 'Invalid amount: must be a positive number.',
       });
+      return;
     }
 
     if (isNaN(new Date(date).getTime())) {
-      return res.status(400).json({
+      res.status(400).json({
         success: false,
         message: 'Invalid date: must be a valid date string.',
       });
+      return;
     }
 
     // Create new expense
@@ -77,16 +86,17 @@ export default function handler(req, res) {
 
     expenses.push(newExpense);
 
-    return res.status(201).json({
+    res.status(201).json({
       success: true,
       message: 'Expense added successfully.',
       data: newExpense,
     });
+    return;
   }
 
   // Method not allowed
-  return res.status(405).json({
+  res.status(405).json({
     success: false,
     message: `Method ${req.method} not allowed.`,
   });
-}
+};
