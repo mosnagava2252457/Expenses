@@ -1,1 +1,324 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Expense Tracker</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        }
+        
+        h1 {
+            color: #333;
+            margin-bottom: 30px;
+            text-align: center;
+        }
+        
+        .form-section {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 30px;
+        }
+        
+        .form-group {
+            margin-bottom: 15px;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 5px;
+            color: #555;
+            font-weight: 500;
+        }
+        
+        input, select {
+            width: 100%;
+            padding: 10px;
+            border: 2px solid #ddd;
+            border-radius: 5px;
+            font-size: 14px;
+            transition: border-color 0.3s;
+        }
+        
+        input:focus, select:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        
+        button {
+            width: 100%;
+            padding: 12px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 5px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+        
+        button:hover {
+            transform: translateY(-2px);
+        }
+        
+        button:active {
+            transform: translateY(0);
+        }
+        
+        .expenses-list {
+            margin-top: 30px;
+        }
+        
+        .expense-item {
+            background: #fff;
+            border: 2px solid #e0e0e0;
+            padding: 15px;
+            margin-bottom: 10px;
+            border-radius: 8px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: all 0.3s;
+        }
+        
+        .expense-item:hover {
+            border-color: #667eea;
+            transform: translateX(5px);
+        }
+        
+        .expense-details {
+            flex: 1;
+        }
+        
+        .expense-description {
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 5px;
+        }
+        
+        .expense-meta {
+            font-size: 13px;
+            color: #666;
+        }
+        
+        .expense-amount {
+            font-size: 24px;
+            font-weight: 700;
+            color: #667eea;
+        }
+        
+        .category-badge {
+            display: inline-block;
+            padding: 3px 8px;
+            background: #667eea;
+            color: white;
+            border-radius: 12px;
+            font-size: 11px;
+            margin-left: 5px;
+        }
+        
+        .message {
+            padding: 10px;
+            border-radius: 5px;
+            margin-bottom: 15px;
+            text-align: center;
+        }
+        
+        .success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        
+        .error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        
+        .loading {
+            text-align: center;
+            color: #666;
+            padding: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>💰 Expense Tracker</h1>
+        
+        <div id="message"></div>
+        
+        <div class="form-section">
+            <form id="expenseForm">
+                <div class="form-group">
+                    <label for="description">Description</label>
+                    <input type="text" id="description" required placeholder="e.g., Lunch at cafe">
+                </div>
+                
+                <div class="form-group">
+                    <label for="amount">Amount ($)</label>
+                    <input type="number" id="amount" step="0.01" required placeholder="e.g., 25.50">
+                </div>
+                
+                <div class="form-group">
+                    <label for="category">Category</label>
+                    <select id="category" required>
+                        <option value="">Select a category</option>
+                        <option value="Food">Food</option>
+                        <option value="Transport">Transport</option>
+                        <option value="Entertainment">Entertainment</option>
+                        <option value="Shopping">Shopping</option>
+                        <option value="Bills">Bills</option>
+                        <option value="Other">Other</option>
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label for="date">Date</label>
+                    <input type="date" id="date" required>
+                </div>
+                
+                <button type="submit">Add Expense</button>
+            </form>
+        </div>
+        
+        <div class="expenses-list">
+            <h2>Recent Expenses</h2>
+            <div id="expensesList" class="loading">Loading expenses...</div>
+        </div>
+    </div>
 
+    <script>
+        // Set today's date as default
+        document.getElementById('date').valueAsDate = new Date();
+        
+        // API endpoint - change this to your Vercel deployment URL
+        const API_URL = '/api/expenses';
+        
+        // Show message
+        function showMessage(text, type) {
+            const messageDiv = document.getElementById('message');
+            messageDiv.textContent = text;
+            messageDiv.className = `message ${type}`;
+            setTimeout(() => {
+                messageDiv.textContent = '';
+                messageDiv.className = '';
+            }, 3000);
+        }
+        
+        // Load expenses
+        async function loadExpenses() {
+            try {
+                const response = await fetch(API_URL);
+                const result = await response.json();
+                
+                if (result.success) {
+                    displayExpenses(result.data);
+                } else {
+                    document.getElementById('expensesList').innerHTML = 
+                        '<p style="color: red;">Failed to load expenses</p>';
+                }
+            } catch (error) {
+                document.getElementById('expensesList').innerHTML = 
+                    '<p style="color: red;">Error loading expenses</p>';
+                console.error('Error:', error);
+            }
+        }
+        
+        // Display expenses
+        function displayExpenses(expenses) {
+            const listDiv = document.getElementById('expensesList');
+            
+            if (expenses.length === 0) {
+                listDiv.innerHTML = '<p style="text-align: center; color: #999;">No expenses yet. Add your first expense above!</p>';
+                return;
+            }
+            
+            // Sort by date (newest first)
+            expenses.sort((a, b) => new Date(b.date) - new Date(a.date));
+            
+            listDiv.innerHTML = expenses.map(expense => `
+                <div class="expense-item">
+                    <div class="expense-details">
+                        <div class="expense-description">
+                            ${expense.description}
+                            <span class="category-badge">${expense.category}</span>
+                        </div>
+                        <div class="expense-meta">
+                            ${new Date(expense.date).toLocaleDateString('en-US', { 
+                                year: 'numeric', 
+                                month: 'short', 
+                                day: 'numeric' 
+                            })}
+                        </div>
+                    </div>
+                    <div class="expense-amount">
+                        $${expense.amount.toFixed(2)}
+                    </div>
+                </div>
+            `).join('');
+        }
+        
+        // Handle form submission
+        document.getElementById('expenseForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const formData = {
+                description: document.getElementById('description').value,
+                amount: parseFloat(document.getElementById('amount').value),
+                category: document.getElementById('category').value,
+                date: document.getElementById('date').value
+            };
+            
+            try {
+                const response = await fetch(API_URL, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(formData)
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    showMessage('Expense added successfully!', 'success');
+                    document.getElementById('expenseForm').reset();
+                    document.getElementById('date').valueAsDate = new Date();
+                    loadExpenses();
+                } else {
+                    showMessage(result.message || 'Failed to add expense', 'error');
+                }
+            } catch (error) {
+                showMessage('Error adding expense', 'error');
+                console.error('Error:', error);
+            }
+        });
+        
+        // Load expenses on page load
+        loadExpenses();
+    </script>
+</body>
+</html>
